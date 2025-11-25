@@ -9,7 +9,7 @@ order: 4
 
 Hey there!
 
-I’m just a guy from Tunisia who can’t stop learning new ways to break (and then fix) things.
+I’m just a freshly graduated engineer from Tunisia who can’t stop learning new ways to break (and then fix) things.
 
 Most days you’ll find me spinning up another VM, flashing a second-hand router I found at the market for next to nothing, or trying to survive the latest Hack The Box machine. My room slowly looks like a mix between a network lab and a recycling center, and I’m totally fine with that.
 
