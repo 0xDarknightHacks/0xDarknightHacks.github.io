@@ -1,5 +1,5 @@
 ---
-title: My Homelabbing Journey Part 1 - From Laptop Virtualization to Bare-Metal Dreams
+title: My Homelabbing Journey Part1 From Laptop Virtualization to Bare-Metal Dreams
 date: 2025-12-16
 categories: [homelab,proxmox,self-hosting]
 tags: [journey,homelabbing,writeups,learning,notes]
