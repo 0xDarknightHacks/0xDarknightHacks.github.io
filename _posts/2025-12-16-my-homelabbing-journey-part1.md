@@ -1,12 +1,12 @@
 ---
-title: My Homelabbing Journey Part 1 From Laptop Virtualization to Bare-Metal Dreams
+title: My Homelabbing Journey Part 1 
 date: 2025-12-16
-categories: [homelab,proxmox,self-hosting]
+categories: [homelab,proxmox,selfhosting]
 tags: [journey,homelabbing,writeups,learning,notes]
 toc: true
 ---
 
-# Welcome Again
+# From Laptop Virtualization to Bare-Metal Dreams
 Hey everyone! Welcome to the first post in what I hope will become a series documenting my homelabbing adventures. This isn't my first rodeo with homelabbing, I've been tinkering for a few years, but it's my first serious step into dedicated hardware. Let's dive into how it all started!
 
 ### The Early Days: Type-2 Hypervisor Magin on a Budget Laptop
