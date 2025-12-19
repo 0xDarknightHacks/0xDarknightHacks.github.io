@@ -16,7 +16,7 @@ timezone: Africa/Tunis
 
 title: DarknightHacks # the main title
 
-tagline: A Doc Site for my Hacking Journey, Writeups, and More! # it will display as the subtitle
+tagline: A Doc Site for my Homelabbing & Hacking Journey, Writeups, and More! # it will display as the subtitle
 
 description: >- # used by seo meta and the atom feed
   Personal Blog documenting my Hacking Journey: CTF writeups, tool notes, Hacking methodology and mindset, exploits and red team tactics.
