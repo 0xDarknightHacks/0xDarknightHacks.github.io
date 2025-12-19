@@ -1,10 +1,11 @@
 ---
-title: Reviving Ancient Routers - My Thrifting Wins and Building a DD-WRT Wireless Client Bridge
+title: My Homelabbing Journey Part 2
 date: 2025-12-19
 categories: [homelab,proxmox,selfhosting,networking]
 tags: [journey,homelabbing,writeups,learning,notes]
 ---
 
+# Reviving Ancient Routers - My Thrifting Wins and Building a DD-WRT Wireless Client Bridge
 Hey folks! If you've been following my homelab journey, you know I'm obsessed with starting small, squeezing value out of old gear, and thrifting like it's an extreme sport. This time? I turned two dirt-cheap market finds into a **wireless client bridge** so I could finally move my homelab into my actual room – no cable runs across the house, no mom vetoes.
 
 ### How the Thrifting Addiction Started
