@@ -10,11 +10,11 @@ Hey folks! If you've been following my homelab journey, you know I'm obsessed wi
 
 ### How the Thrifting Addiction Started
 
-I absolutely love Tunisian souks – those massive, chaotic markets where everything is used, super cheap, and usually a total gamble. The electronics corners? Pure dopamine.
+I absolutely love Tunisian souks, those massive, chaotic markets where everything is used, super cheap, and usually a total gamble. The electronics corners? Pure dopamine.
 
-One day, thrifting with friends, I spot a **Cisco logo** buried in a pile. I literally vaulted over stuff to grab it: a **Linksys E900** router. Quick inspection – powers on, looks good. Price? **7 TND** (about $2.20 USD). Instant buy.
+One day, thrifting with friends, I spot a **Cisco logo** buried in a pile. I literally vaulted over stuff to grab it: a **Linksys E900** router. Quick inspection,  powers on, looks good. Price? **7 TND** (about $2.20 USD). Instant buy.
 
-That purchase unlocked something dangerous. I started hunting routers and switches obsessively – haggling hard (sorry vendors), cursing when prices crept over my tiny budget. I scored tons of D-Link junk, random Cisco bits, and then... jackpot: a **Linksys E1200** for roughly the same price, plus two Ethernet cables for pocket change.
+That purchase unlocked something dangerous. I started hunting routers and switches obsessively, haggling hard (sorry vendors), cursing when prices crept over my tiny budget. I scored tons of D-Link junk, random Cisco bits, and then... jackpot: a **Linksys E1200** for roughly the same price, plus two Ethernet cables for pocket change.
 
 No power adapters included, obviously. Scoured my room's electronics graveyard – nothing matched the 12V 0.5A spec. Risked a 9V adapter just to test: both routers lit up! Later bought proper chargers for ~30 TND total (under $10).
 
