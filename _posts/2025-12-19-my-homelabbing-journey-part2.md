@@ -3,6 +3,7 @@ title: My Homelabbing Journey Part 2
 date: 2025-12-19
 categories: [homelab,proxmox,selfhosting,networking]
 tags: [journey,homelabbing,writeups,learning,notes]
+toc: true
 ---
 
 # Reviving Ancient Routers: My Thrifting Wins and Building a DD-WRT Wireless Client Bridge
