@@ -60,7 +60,7 @@ Life got in the way soon after. School resumed, internship hunt consumed me—ex
 Fast-forward to now (late 2025), with more knowledge and a steady job, the homelab itch returned—stronger than ever. Time for an upgrade!
 I scoured eBay, Amazon, Facebook Marketplace, and Kleinanzeigen (shoutout to my brother in Germany for the affordable options). First target: a Dell OptiPlex 3050 Mini (16GB DDR4, 256GB NVMe) for €100, haggled to €95. Logistics failed—heartbreak.
 
-But persistence pays off. Found a reliable seller on Facebook Marketplace, and contacted him on WhatsApp with great feedback. Alhamdulillah, scored a Dell OptiPlex 5060:
+But persistence pays off. Found a reliable seller on Facebook Marketplace, and contacted him on WhatsApp with great feedback. Alhamdulillah, scored a Dell OptiPlex 5070:
 
 - i5-9500T (6 cores, coffee lake goodness—VT-d supported!)
 - 16GB DDR4 RAM
