@@ -1,6 +1,6 @@
 ---
-title: My Homelabbing Journey Part 3
-date: 2025-12-22
+title: My Homelabbing Journey Part 4
+date: 2025-01-02
 categories: [homelab,proxmox,self-hosting,immich,backup]
 tags: [journey,homelabbing,writeups,learning,notes]
 toc: true
