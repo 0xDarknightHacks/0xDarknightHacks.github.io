@@ -21,7 +21,7 @@ No research needed—I already knew **Immich** was the move. It's an open-source
 
 Used the trusty **Proxmox VE Helper Scripts** (tteck's scripts are life-savers).
 
-Created an LXC container and ran the Immich script—super straightforward.
+Ran the Immich script and Created an LXC container, super straightforward.
 
 Bumped storage to 150GB (way over the 20GB minimum) since I had my 1TB drive available. I'm not a heavy photographer—mostly friend hangouts, silly moments, and yes... cats. All cats deserve documentation.
 
@@ -31,7 +31,7 @@ Setup the mobile app: point it to my server's local IP, log in, enable auto-back
 
 ### The Backup Marathon
 
-What I *didn't* expect: the initial upload taking a **full day**. Thousands of photos/videos trickling up slowly. Sometimes it paused if the app wasn't foreground—iOS battery optimization things.
+What I *didn't* expect: the initial upload taking a **full day**. Thousands of photos/videos trickling up slowly. Sometimes it paused if the app wasn't foreground.
 
 Researched: some folks reported slowness on older versions, but I was on the latest. Still, it got done eventually.
 
