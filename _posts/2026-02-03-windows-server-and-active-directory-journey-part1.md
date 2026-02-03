@@ -1,5 +1,5 @@
 ---
-title: Windows Server and Active Directory Journey Part 1
+title: Windows Server and Active Directory Journey Part 1   
 date: 2026-02-03
 categories: [windows server,active directory,DNS,server hardening]
 tags: [AD,WS,DNS,DNSSEC,writeups,learning,notes]
