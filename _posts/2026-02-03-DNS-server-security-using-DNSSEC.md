@@ -8,122 +8,127 @@ toc: true
 
 # Introduction
 
-DNS is a foundational service in any Windows-based infrastructure. However, **by design it provides no authentication or integrity protection**. This makes it vulnerable to serious attacks such as:
+DNS is a foundational service in any Windows-based infrastructure, but by design it does not provide authentication or integrity protection. This makes it vulnerable to attacks such as DNS spoofing, cache poisoning, and man-in-the-middle manipulation.
 
-- DNS spoofing
-- Cache poisoning
-- Man-in-the-middle manipulation
+DNS Security Extensions (DNSSEC) address these weaknesses by allowing DNS responses to be cryptographically validated, ensuring that clients receive authentic and untampered DNS data.
 
-**DNS Security Extensions (DNSSEC)** address these weaknesses by adding **cryptographic validation** to DNS responses. This ensures clients receive authentic, untampered DNS data.
-
-In this guide we cover:
+In this guide, we will walk through:
 
 - What DNSSEC is and how it works
 - How DNSSEC is implemented on Windows Server
-- Configuring DNSSEC zone signing
-- Enforcing DNSSEC validation on clients using NRPT
-- Additional hardening with DNS Socket Pool and Cache Locking
-- Common pitfalls (especially in Active Directory environments)
+- How to validate DNSSEC on clients
+- How to harden DNS further using DNS Socket Pool and DNS Cache Locking
+- Common pitfalls in Active Directory environments (including KDS-related issues)
 
 ## What Is DNSSEC?
 
-DNSSEC is a set of extensions to the DNS protocol that allows **cryptographic validation** of DNS responses.
+DNSSEC is a security standard that protects DNS by ensuring that only authorized DNS servers can respond to DNS queries with data that clients trust.
 
-It ensures that:
+It is implemented as a collection of extensions to the DNS protocol and is commonly deployed alongside other DNS hardening mechanisms such as:
 
-- Only authorized DNS servers can provide trusted answers
-- DNS data has not been altered in transit
+- DNS Cache Locking
+- DNS Socket Pool
 
-### Key DNSSEC Resource Records
+When DNSSEC is enabled, the DNS zone is extended with additional resource records, including:
 
-When a zone is signed, the following records are added:
+- **RRSIG records**  
+  These contain digital signatures for DNS data.
 
-- **RRSIG** – digital signatures for each RRset
-- **DNSKEY** – contains the public keys used to verify signatures
-- **DS** – Delegation Signer record (used in the parent zone)
+- **DNSKEY records**  
+  These contain the public keys used to validate DNS responses.
 
-### Validation Process (simplified)
+When a DNS resolver receives a response from a DNS server, it:
 
-1. Resolver retrieves the **DNSKEY** record
-2. Hashes the received DNS response data
-3. Verifies the hash against the **RRSIG** signature using the public key
-4. If valid → response is trusted
+1. Retrieves the DNSKEY record
+2. Hashes the DNS response
+3. Verifies the hash against the RRSIG signature
 
-**Important**: DNSSEC does **not** encrypt DNS traffic — it only guarantees authenticity and integrity.
+If validation succeeds, the response is considered authentic and untampered.
 
 ## Why DNSSEC Matters
 
-DNSSEC protects against:
+By using cryptographic signatures, DNSSEC ensures:
 
-- DNS spoofing
-- Cache poisoning
-- Malicious redirection to phishing / malware sites
+- Integrity of DNS data
+- Authenticity of the responding DNS server
+- Protection against:
+  - DNS spoofing
+  - Cache poisoning
+  - Tampered responses that redirect users to malicious resources
 
-It provides **data origin authentication** and **integrity**, forming a critical layer in modern DNS security.
+DNSSEC does not encrypt DNS traffic, but it guarantees that the data received is trustworthy.
 
-## DNSSEC on Windows Server – Per-Zone Signing
+## DNSSEC Zone Signing on Windows Server
 
-Windows Server uses a **per-zone signing model**.
+### Per-Zone Signing Model
+
+DNSSEC signing on Windows Server is performed per DNS zone.
 
 You can:
 
-- Use **default signing settings** (recommended for most environments)
-- Customize key rollover periods, validity intervals, key master, etc.
+- Use the default signing configuration (recommended for most environments)
+- Customize advanced parameters, such as:
+  - Key master
+  - Key rollover intervals
+  - DNSKEY and RRSIG validity periods
 
-Zone signing does **not** change the standard DNS query/response flow — it only adds a validation layer.
+In most enterprise environments, the default signing parameters are sufficient and align with Microsoft best practices.
 
-### High-Level Hardening Workflow
+Signing a zone does not alter the standard DNS query/response mechanism. Instead, it adds a cryptographic validation layer that operates transparently to clients.
 
-Recommended order:
+## High-Level Hardening Workflow
 
-1. Enable & sign DNSSEC on the zone
-2. Configure client validation policies (NRPT via Group Policy)
-3. Harden the DNS server itself:
-   - DNS Socket Pool
-   - DNS Cache Locking
+To properly secure a Windows DNS server, the recommended sequence is:
 
-## Step 1 – Signing a DNS Zone
+1. Configure DNSSEC on the DNS zone
+2. Configure DNSSEC validation policies via Group Policy (NRPT)
+3. Configure DNS Socket Pool
+4. Configure DNS Cache Locking
 
-### Using DNS Manager (GUI)
+## Signing a DNS Zone
 
-1. Open **DNS Manager**
-2. Right-click the zone → **DNSSEC** → **Sign the Zone…**
-3. Choose **Customize zone signing parameters** (or use defaults)
-4. Complete the wizard
+Zone signing can be done using:
 
-### Using PowerShell (preferred for automation / repeatability)
+- The DNS Manager graphical wizard
+- PowerShell
 
-```powershell
-# Sign the zone with default settings
-Invoke-DnsServerZoneSign -ZoneName "example.com" -ComputerName "dc01"
+## Verifying Zone Signing
 
-# Or with custom parameters
-Set-DnsServerDnsSecZoneSetting -ZoneName "example.com" `
-    -DenialOfExistenceProofType NSEC3 `
-    -DSRecordGenerationAlgorithm RSASHA256 `
-    -KeyMasterServer "dc01.example.com"
-```
+To confirm that a zone is signed, query the DNSSEC records.
 
-### Verifying Zone Signing
+**Query RRSIG records**
 
 ```powershell
-# Check for RRSIG records
-Resolve-DnsName -Name example.com -Type RRSIG
-
-# Check DNSKEY records
-Resolve-DnsName -Name example.com -Type DNSKEY | Format-Table -AutoSize
-
-# View signing settings
-Get-DnsServerDnsSecZoneSetting -ZoneName "example.com"
+Resolve-DnsName -Name domain.name -Type RRSIG
 ```
 
-## Step 2 – Configuring DNSSEC Validation on Clients (NRPT)
+**Query DNSKEY records**
 
-Clients use the **Name Resolution Policy Table (NRPT)** to decide when to require DNSSEC validation.
+```powershell
+Resolve-DnsName -Name domain.name -Type DNSKEY | Format-Table -AutoSize
+```
 
-### Configure via Group Policy
+**Retrieve DNSSEC signing parameters**
 
-**Path**:
+```powershell
+Get-DnsServerDnsSecZoneSetting -ZoneName domain.name -ComputerName computer.name
+```
+
+**Modify DNSSEC signing parameters**
+
+```powershell
+Set-DnsServerDnsSecZoneSetting
+```
+
+## Configuring DNSSEC Validation on Clients (NRPT)
+
+Before sending a DNS query, a Windows client checks the Name Resolution Policy Table (NRPT) to determine whether DNSSEC validation rules apply.
+
+If a match is found, the client enforces the configured policy, such as requiring authenticated DNS responses.
+
+### Configuring NRPT via Group Policy
+
+NRPT settings are configured under:
 
 ```
 Computer Configuration
@@ -132,105 +137,114 @@ Computer Configuration
     └ Name Resolution Policy
 ```
 
-1. Create a new rule
-2. Choose **Suffix** (e.g. `example.com`) or **FQDN**
-3. Enable **Require DNSSEC validation**
-4. Optionally require **IPsec** or other settings
-5. Apply the GPO to the desired computers / OUs
+Within the Create Rules section, DNSSEC rules can target:
 
-### Verify Validation on a Client
+- Prefix – applies to subdomains
+- Suffix – applies to the domain itself
+- FQDN – applies to a specific host
+
+Scope – rules can apply to:
+
+- Specific IP subnets
+- All computers affected by the GPO
+
+### Verifying DNSSEC Validation on Clients
+
+After Group Policy is applied, verify DNSSEC validation with:
 
 ```powershell
-Resolve-DnsName -Name dc01.example.com -Type All
+Resolve-DnsName -Name computer.domain.name -Type All
 ```
 
-Look for the line:
+Authenticated responses indicate successful DNSSEC validation.
 
-```
-DNSSEC validation: Success
-```
+## Additional DNS Hardening
 
-## Step 3 – Additional DNS Server Hardening
+Once DNSSEC and NRPT are in place, the DNS server itself should be further hardened.
 
 ### DNS Socket Pool
 
-Randomizes source ports for outbound queries → makes transaction ID prediction attacks much harder.
+DNS Socket Pool increases security by randomizing the source ports used for outbound DNS queries, making transaction ID prediction attacks significantly harder.
+
+**Check current socket pool size**
 
 ```powershell
-# Check current size
-Get-DnsServerSetting -All | Select-Object SocketPoolSize
+Get-DnsServerSetting -All | Select-Object -Property SocketPoolSize
+```
 
-# Set to 5000 (good balance)
+**Increase socket pool size**
+
+```powershell
 dnscmd /config /socketpoolsize 5000
 ```
 
-Valid range: **0 – 10000** (higher = stronger protection)
+Valid values range from 0 to 10000. Larger values provide stronger protection.
 
 ### DNS Cache Locking
 
-Prevents cached records from being overwritten before TTL expires.
+DNS Cache Locking prevents cached DNS records from being overwritten before their TTL expires, protecting against cache poisoning attacks.
+
+**Check cache locking percentage**
 
 ```powershell
-# Check current setting
-Get-DnsServerCache | Select-Object LockingPercent
+Get-DnsServerCache | Select-Object -Property LockingPercent
+```
 
-# Set to full protection (recommended)
+The recommended value is: **100**
+
+**Enable full cache locking**
+
+```powershell
 Set-DnsServerCache -LockingPercent 100
 ```
 
 ## Important Notes & Common Pitfalls
 
-### KDS Root Key & Domain Controllers OU Issue
+### Domain Controllers Moved from Default OU
 
-DNSSEC signing often fails when:
+In my own setup, DNSSEC zone signing initially failed due to an unexpected dependency:
 
-- Domain Controllers have been moved **out** of the default **Domain Controllers** OU
-- Microsoft **Key Distribution Service (KDS)** cannot start
-- `Add-KdsRootKey` fails
+- Domain Controllers had been moved out of the default “Domain Controllers” OU
+- The Microsoft Key Distribution Service (KDS) failed to start
+- Creating a KDS Root Key also failed
 
-**Fix**:
+The root cause was that the DC was no longer receiving critical DC-specific policies.
 
-1. Move the affected Domain Controller back to the **Domain Controllers** OU
-2. Wait for Group Policy refresh
-3. Create the KDS root key:
-   ```powershell
-   Add-KdsRootKey -EffectiveImmediately
-   ```
-4. Start the KDS service if needed
-5. Retry zone signing
+**Resolution Steps**
+
+1. Move the Domain Controller back to the Default Domain Controllers OU
+2. Allow Group Policy to apply
+3. Create the KDS root key
+4. Start the KDS service
+5. Sign the DNS zone successfully
 
 ### Multi-DC / Multi-Site Environments
 
-Make sure:
+If you are running:
 
-- All DCs are online during initial signing
-- AD replication is healthy (`repadmin /replsummary`)
-- DNS zones are **AD-integrated**
-- DNSSEC metadata replicates via AD (not per-DC)
+- Redundant Domain Controllers
+- Multi-site Active Directory with replication
+
+Ensure that:
+
+- All DCs are online during zone signing
+- Active Directory replication is healthy
+- DNS zones are AD-integrated
+
+DNSSEC keys and signing metadata are replicated through Active Directory and should never be created per DC.
 
 ## Conclusion
 
-DNSSEC significantly strengthens DNS security in Windows Server environments by cryptographically validating responses and preventing tampering.
+DNSSEC significantly strengthens DNS security in Windows Server environments by ensuring the authenticity and integrity of DNS data. When combined with:
 
-A complete modern DNS hardening strategy usually includes:
+- Proper Group Policy enforcement
+- DNS Socket Pool
+- DNS Cache Locking
 
-- DNSSEC zone signing
-- NRPT-enforced client validation
-- DNS Socket Pool (randomized ports)
-- DNS Cache Locking (100%)
+…it forms a robust, defense-in-depth approach to DNS hardening.
 
-Pay special attention to:
+Correct placement of Domain Controllers, healthy AD replication, and awareness of dependencies like KDS are critical for a successful deployment.
 
-- Correct placement of Domain Controllers
-- Healthy Active Directory replication
-- Availability of the Key Distribution Service (KDS)
-
-When these pieces are correctly configured, you achieve strong **defense-in-depth** for one of the most critical services in your infrastructure — DNS.
-```
-
-This format should work well in most Jekyll blogs. You can adjust the `date`, `categories`, `tags`, or layout name according to your site's conventions.
-
-Let me know if you'd like to add images (diagrams), code highlighting adjustments, or any other refinements!
 
 Thanks for reading – more technical blogs around Windows Server and Active Directory coming soon. 
 
