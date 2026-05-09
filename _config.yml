@@ -42,7 +42,7 @@ social:
     - https://github.com/nattyCoder # change to your GitHub homepage
     # Uncomment below to add more social links
     # - https://www.facebook.com/username
-    # - https://www.linkedin.com/in/username
+    - https://www.linkedin.com/in/alaaeddineayedi
 
 # Site Verification Settings
 webmaster_verifications:
@@ -61,7 +61,7 @@ analytics:
   google:
     id: G-NTEC7KFQY1
   goatcounter:
-    id: #
+    id: nattycoder
   umami:
     id: # fill in your Umami ID
     domain: # fill in your Umami domain
@@ -74,8 +74,8 @@ analytics:
     id: # fill in your Fathom Site ID
 
 # Page views settings
-# pageviews:
-#   provider: 'goatcounter'
+pageviews:
+  provider: 'goatcounter'
 
 # Prefer color scheme setting.
 #
