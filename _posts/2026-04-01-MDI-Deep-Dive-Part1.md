@@ -1,5 +1,5 @@
 ---
-title: Microsoft Defender for Identity Deep Dive — Part 1: Architecture, Sensors, and Identity Telemetry
+title: "Microsoft Defender for Identity Deep Dive — Part 1: Architecture, Sensors, and Identity Telemetry"
 date: 2026-04-01
 categories: [microsoft-defender-xdr, identity-security]
 tags: [mdi, defender-xdr, active-directory, kerberos, ntlm, ldap, identity-security, soc, detection-engineering]
