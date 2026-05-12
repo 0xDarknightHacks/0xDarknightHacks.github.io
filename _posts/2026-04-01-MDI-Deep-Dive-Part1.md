@@ -1,6 +1,6 @@
 ---
 title: "Microsoft Defender for Identity Deep Dive — Part 1: Architecture, Sensors, and Identity Telemetry"
-date: 2026-04-01
+date: 2026-05-09
 categories: [microsoft-defender-xdr, identity-security]
 tags: [mdi, defender-xdr, active-directory, kerberos, ntlm, ldap, identity-security, soc, detection-engineering]
 toc: true
@@ -59,6 +59,21 @@ It monitors identity infrastructure, analyzes identity behavior, and feeds the w
 This is especially important in hybrid environments, where an attacker may start on an endpoint, authenticate against Active Directory, abuse Kerberos or NTLM, touch a privileged group, move laterally, and later pivot into cloud resources.
 
 Without MDI, Defender XDR may still see endpoint and cloud activity. But it loses a deep view of the on-premises identity layer where many attacks become serious.
+
+## Architectural clarification
+
+A useful way to explain MDI to customers is this:
+
+> MDI is not “watching users” in the productivity-monitoring sense.  
+> It is observing identity behavior through infrastructure signals.
+
+That means MDI looks at how identities interact with Active Directory and hybrid identity infrastructure: authentication, authorization, directory queries, replication behavior, delegation, certificate-related activity, and other identity-plane signals.
+
+It does **not** record everything a user does on the network. It is not DLP, browser monitoring, endpoint activity tracking, or a general-purpose user surveillance tool.
+
+This boundary is important in workshops because some customers hear “identity monitoring” and assume MDI monitors user activity broadly. A better consultant framing is:
+
+> MDI monitors identity behavior as seen by identity infrastructure, not everything a person does from their device.
 
 ---
 
@@ -124,6 +139,53 @@ The most important are:
 * and identity metadata.
 
 These sources complement each other. None of them is enough alone.
+
+## Architectural clarification: what MDI sees — and what it does not
+
+MDI does not see “everything users do on the network.”
+
+It focuses on identity-relevant interactions, especially those involving Active Directory and hybrid identity infrastructure. Examples include:
+
+* authentication attempts,
+* Kerberos ticket behavior,
+* NTLM activity,
+* LDAP and SAM-R queries,
+* directory object changes,
+* replication-related behavior,
+* delegation and privilege relationships,
+* AD FS, AD CS, and Entra Connect-related identity signals where monitored.
+
+It does not replace:
+
+* Microsoft Defender for Endpoint for endpoint activity,
+* Microsoft Sentinel for broad log collection and long-term SIEM analytics,
+* Microsoft Purview DLP for data movement and content inspection,
+* Microsoft Defender for Cloud Apps for SaaS activity,
+* or Entra ID Protection for cloud sign-in risk.
+
+This distinction helps prevent a common expectation problem. MDI is extremely valuable, but its value is specific:
+
+> It gives Defender XDR deep visibility into the identity plane, not universal visibility into all user behavior.
+
+## Consultant framing: infrastructure monitoring vs user monitoring
+
+When explaining the sensor model, be precise with wording.
+
+MDI sensors are deployed on identity infrastructure because that is where identity evidence becomes visible. The sensor is not installed on every user endpoint to monitor what users are doing locally. That role belongs to endpoint telemetry, primarily Microsoft Defender for Endpoint.
+
+For example:
+
+* MDI can observe that an account performed suspicious LDAP reconnaissance against Active Directory.
+* MDI can observe unusual Kerberos, NTLM, SAM-R, or directory activity.
+* MDI can observe suspicious authentication and identity-plane behavior.
+* MDE is the product that provides endpoint process, file, script, device, and discovery telemetry.
+
+The two are complementary.
+
+A good XDR investigation uses both:
+
+> MDI explains the identity behavior.
+> MDE explains what happened on the device.
 
 ## 3.1 Protocol visibility
 
@@ -250,6 +312,25 @@ Typical deployment targets include:
 * AD FS servers,
 * AD CS servers,
 * Microsoft Entra Connect servers.
+
+## Common customer question: “Is MDI only for Domain Controllers?”
+
+No.
+
+Domain controllers are the most important deployment target because they process the core authentication and directory activity MDI needs to analyze. But MDI is not only for DCs.
+
+A complete MDI design should also consider other Tier 0 identity infrastructure, including:
+
+* Read-Only Domain Controllers,
+* AD FS servers,
+* AD CS servers,
+* Microsoft Entra Connect servers,
+* staging Entra Connect servers,
+* and other systems that influence authentication, federation, certificates, synchronization, or privileged identity state.
+
+So the more accurate statement is:
+
+> MDI is primarily deployed on identity infrastructure. Domain controllers are central, but they are not the whole identity plane.
 
 This model provides strong coverage because the sensor runs directly on the server it monitors.
 
@@ -569,6 +650,22 @@ In v2.x deployments, traditional NNR may require internal connectivity such as T
 
 In v3.x deployments, MDE device inventory can improve this model, but only if MDE onboarding and device inventory are healthy.
 
+## Common customer question: “Is device discovery an MDI capability?”
+
+Not primarily.
+
+Device discovery is mainly a Microsoft Defender for Endpoint capability. MDE discovers and inventories devices through endpoint signals, network observations, onboarded devices, and related discovery mechanisms.
+
+MDI can consume and benefit from device context when identity activity involves a computer, IP address, or endpoint already known in Defender XDR. It can also contribute identity-related observations about devices involved in authentication or directory activity.
+
+But MDI should not be positioned as the main device discovery tool.
+
+The clean separation is:
+
+> MDE discovers and investigates devices.
+> MDI observes identity interactions involving users, computers, and identity infrastructure.
+> Defender XDR correlates both into one investigation story.
+
 ## Field insight
 
 Poor NNR does not always mean “no alert.”
@@ -848,6 +945,27 @@ Part 3 of this series will go deeper into investigation workflows, but the archi
 
 # 18. What customers often misunderstand
 
+## Common misconception: “If users authenticate, MDI monitors the users”
+
+This needs careful wording.
+
+MDI does not monitor users as people. It monitors identity activity involving user accounts, computer accounts, service accounts, and privileged identities as they interact with the identity infrastructure.
+
+That means MDI may surface a user account in an alert because that account:
+
+* authenticated abnormally,
+* queried sensitive directory objects,
+* requested suspicious Kerberos tickets,
+* modified a privileged group,
+* accessed a sensitive system,
+* or appeared in a lateral movement path.
+
+But the monitoring point is still the identity signal, not personal user activity.
+
+A useful workshop phrase is:
+
+> MDI is account-aware and behavior-aware, but it is not user surveillance.
+
 ## Misconception 1: “MDI is a full auditing tool”
 
 MDI is not a general-purpose audit platform.
@@ -911,6 +1029,18 @@ Security architects own the bigger questions:
 * and XDR integration.
 
 MDI fails when everyone assumes another team owns the hard parts.
+
+## Misconception 6: “MDI discovers all devices in the environment”
+
+MDI should not be positioned as the primary device discovery platform.
+
+Device discovery is primarily handled by Microsoft Defender for Endpoint. MDI can use device context inside Defender XDR and can show computers involved in identity activity, but that is different from full device discovery and inventory.
+
+If the customer’s goal is to find unmanaged devices, unknown endpoints, network assets, or device exposure, start with MDE.
+
+If the goal is to understand how accounts, computers, and identity infrastructure interact through authentication and directory protocols, MDI is the right signal source.
+
+The products meet inside Defender XDR, but they do not have the same responsibility.
 
 ---
 
@@ -1041,6 +1171,22 @@ That is the difference between deploying MDI and operationalizing MDI.
 # 21. Final consultant framing
 
 When explaining MDI to a customer, I would avoid saying:
+
+> “MDI monitors users.”
+
+That phrase creates the wrong expectation.
+
+A better framing is:
+
+> “MDI monitors identity behavior through signals collected from identity infrastructure. It helps Defender XDR understand how accounts, computers, services, and privileged identities interact with Active Directory and hybrid identity systems.”
+
+That explanation is more accurate and easier to defend architecturally.
+
+MDI is not trying to replace endpoint telemetry, device discovery, SIEM logging, DLP, or cloud sign-in risk. Its job is narrower and deeper:
+
+> expose identity-plane behavior that would otherwise be difficult to detect, correlate, and investigate.
+
+I would also avoid saying:
 
 > “MDI detects attacks against Active Directory.”
 

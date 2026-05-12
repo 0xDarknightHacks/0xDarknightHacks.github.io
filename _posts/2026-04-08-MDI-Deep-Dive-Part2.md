@@ -1,6 +1,6 @@
 ---
 title: "Microsoft Defender for Identity Deep Dive — Part 2: Detection Logic, Baselines, and Limits"
-date: 2026-04-08
+date: 2026-05-09
 categories: [microsoft-defender-xdr, identity-security]
 tags: [mdi, defender-xdr, active-directory, kerberos, ntlm, ldap, detection-engineering, soc, baselining]
 toc: true
@@ -121,6 +121,32 @@ This is the mindset shift.
 MDI is not a tool detector.
 
 MDI is an identity behavior and protocol analytics engine.
+
+## Customer misconception: “Is this user behavior monitoring?”
+
+No.
+
+MDI is not designed to monitor employee productivity, browsing behavior, screen activity, file usage, or general “what did this person do all day?” activity.
+
+It evaluates identity misuse and identity-plane behavior.
+
+That means it looks at signals such as:
+
+- authentication attempts,
+- Kerberos and NTLM behavior,
+- LDAP and SAM-R queries,
+- directory object changes,
+- replication behavior,
+- privilege relationships,
+- and suspicious interactions with identity infrastructure.
+
+A user account may appear in an MDI alert, but the alert is about the account’s identity behavior, not personal surveillance.
+
+A useful workshop phrase is:
+
+> MDI is account-aware and behavior-aware, but it is not employee monitoring.
+
+This distinction matters for SOC trust and customer communication. If MDI is framed as a surveillance tool, business stakeholders misunderstand its purpose. If it is framed correctly, it becomes what it actually is: an identity security signal source.
 
 ---
 
@@ -1242,6 +1268,56 @@ Avoid excluding:
 - AD FS servers,
 - AD CS servers.
 
+## Consultant warning: exclusions are risk decisions, not tuning shortcuts
+
+A common workshop question is:
+
+> “When should we configure exclusions in the MDI portal?”
+
+The safest answer is:
+
+> Only after you understand the alert, validate the benign pattern, and confirm that narrower tuning will not solve the problem.
+
+Exclusions should be treated as last-resort risk decisions, not as the default way to make the portal quieter.
+
+Before creating an exclusion, ask:
+
+- What exact alert or behavior are we trying to suppress?
+- Is the behavior truly benign, or only familiar?
+- Is this source ever used for privileged access?
+- Could an attacker compromise this excluded device or account?
+- Will the exclusion hide future reconnaissance, credential access, or lateral movement?
+- Can we tune by condition, scope, maintenance window, source, or known tool instead?
+- Who owns the exclusion?
+- When will it be reviewed?
+
+The point is not “never use exclusions.”
+
+The point is:
+
+> Exclusions should reduce known noise without removing visibility into meaningful identity abuse.
+
+If an exclusion hides a real attack path, the environment becomes quieter but less secure.
+
+## Customer misconception: “Can exclusions be used to reduce noise safely?”
+
+Sometimes, but only with strict scope and ownership.
+
+A safe exclusion is narrow, documented, justified, and reviewed.
+
+A risky exclusion is broad, permanent, unexplained, and applied because the SOC is tired of seeing an alert.
+
+For example:
+
+- excluding a specific known scanner from a specific reconnaissance alert may be reasonable after validation,
+- excluding an entire subnet because “a lot of alerts come from there” is usually dangerous,
+- excluding a privileged admin account is almost never a safe default,
+- excluding a domain controller or Tier 0 asset creates a serious blind spot.
+
+Noise reduction should improve SOC trust.
+
+It should not train the environment to ignore the exact systems attackers want to abuse.
+
 ## Field insight
 
 The best tuning question is:
@@ -1366,6 +1442,66 @@ Set expectations early.
 
 For the first few weeks, classify alerts carefully, monitor health, and avoid aggressive tuning unless the benign source is well understood.
 
+## 15.6 Disabled users still appearing active or “present in the network”
+
+A common customer question is:
+
+> “Why does a disabled user still appear active, present, or visible in MDI?”
+
+This usually comes from a misunderstanding of identity lifecycle versus evidence visibility.
+
+Disabling an account prevents new authentication in normal conditions, but it does not erase the account from historical telemetry, existing evidence, or every active context immediately.
+
+A disabled user may still appear in MDI or Defender XDR because:
+
+- the account appears in historical logs or alert evidence,
+- the account had Kerberos tickets issued before it was disabled,
+- cached credentials may exist on endpoints,
+- sessions or tokens may not yet be revoked,
+- directory references still exist,
+- the account is still linked to past activity,
+- devices may still show previous logon context,
+- or delayed telemetry is still arriving and being processed.
+
+This does not necessarily mean the disabled account is successfully authenticating right now.
+
+It means the identity still exists in security evidence and may still be relevant to investigation.
+
+### Why this happens
+
+Identity systems are not erased instantly.
+
+Authentication state, session state, ticket lifetime, cached logon context, and historical evidence are different things.
+
+For example:
+
+- disabling an AD account stops new domain authentication,
+- existing Kerberos tickets may remain valid until expiry unless invalidated by other controls,
+- cloud sessions require session revocation to terminate active tokens,
+- endpoint logon sessions may persist until logoff or restart,
+- historical evidence remains visible for investigation.
+
+### Consultant framing
+
+A better way to explain it is:
+
+> Disabled means the account should not be allowed to perform new normal authentication.  
+> It does not mean all historical evidence, tickets, sessions, or cached references disappear immediately.
+
+This matters in investigations.
+
+If a disabled account appears in an MDI timeline, the SOC should check whether the event is:
+
+- historical evidence,
+- delayed ingestion,
+- failed authentication,
+- ticket-based activity,
+- cached endpoint context,
+- active cloud session behavior,
+- or true post-disable authentication.
+
+That distinction prevents false escalation and improves SOC confidence.
+
 ---
 
 # 16. What breaks detection confidence
@@ -1405,6 +1541,37 @@ with the right event context, at the right time, with enough baseline maturity?
 ````
 
 That question solves many “MDI did not detect X” conversations.
+
+## Consultant warning: exclusions can also break confidence
+
+Exclusions are sometimes invisible in day-to-day triage because they reduce alert volume.
+
+That is exactly why they are dangerous.
+
+A broad exclusion can make the SOC believe the environment is clean when MDI is simply no longer alerting on important behavior.
+
+Exclusions can break detection confidence by hiding:
+
+* reconnaissance from known scanners that later become compromised,
+* suspicious activity from privileged admin devices,
+* identity activity through NAT or VPN infrastructure,
+* behavior involving sensitive service accounts,
+* or attack paths involving Tier 0 infrastructure.
+
+Every exclusion should be treated like a detection coverage exception.
+
+It should have:
+
+* an owner,
+* a reason,
+* a scope,
+* a risk statement,
+* an expiration or review date,
+* and evidence that narrower tuning was considered first.
+
+If those details do not exist, the exclusion is not tuning.
+
+It is an undocumented blind spot.
 
 ---
 
@@ -1449,17 +1616,51 @@ It captures signals required for threat detection, posture recommendations, inve
 
 For long-term audit retention, compliance evidence, and broad log analytics, use Sentinel or another SIEM strategy.
 
-## 17.4 MDI cannot decrypt all encrypted protocol traffic
+## 17.4 MDI is not a DLP solution
+
+MDI is not Data Loss Prevention.
+
+It does not inspect file content, classify sensitive documents, monitor clipboard activity, enforce data handling rules, or determine whether a user copied confidential information into an email, USB drive, browser, or SaaS platform.
+
+That responsibility belongs to Microsoft Purview DLP and related data protection controls, not MDI.
+
+MDI may help detect identity behavior that occurs before or around data access, such as:
+
+* credential compromise,
+* lateral movement,
+* suspicious authentication,
+* privilege escalation,
+* or directory reconnaissance.
+
+But it does not answer:
+
+> “What sensitive file did the user copy?”
+
+It answers identity-plane questions such as:
+
+> “Which account authenticated, from where, using which protocol, against which identity infrastructure, and was that behavior suspicious?”
+
+This distinction is critical.
+
+Do not sell MDI as DLP.
+
+Do not tune MDI as if it understands data content.
+
+Do not use MDI alerts alone to prove data exfiltration.
+
+Use MDI to understand identity compromise and identity abuse. Use Purview, Defender for Cloud Apps, MDE, Sentinel, and storage/application logs to investigate data access and exfiltration.
+
+## 17.5 MDI cannot decrypt all encrypted protocol traffic
 
 MDI performs deep packet inspection, but it cannot decrypt certain encrypted protocol traffic such as AtSvc and WMI.
 
 It may still analyze traffic patterns, but not all content.
 
-## 17.5 Kerberos Armoring affects some detections
+## 17.6 Kerberos Armoring affects some detections
 
 Kerberos Armoring is generally supported, but specific detections, such as some Overpass-the-Hash scenarios, may not work when Kerberos Armoring is enabled.
 
-## 17.6 Source-user attribution may fail
+## 17.7 Source-user attribution may fail
 
 Sometimes MDI cannot correlate the source user to the activity.
 
@@ -1467,7 +1668,7 @@ In those cases, it may show only the source computer.
 
 This usually happens when the relevant user context is not available in the captured traffic or cannot be correlated confidently.
 
-## 17.7 Behavioral detections are weaker before baselines mature
+## 17.8 Behavioral detections are weaker before baselines mature
 
 Before learning periods complete, MDI has less context.
 
@@ -1478,7 +1679,7 @@ This can cause:
 * missed behavioral anomalies,
 * or inconsistent test results.
 
-## 17.8 Established admin behavior can hide abuse
+## 17.9 Established admin behavior can hide abuse
 
 If an account or machine regularly performs broad administrative tasks, MDI may learn that behavior as normal.
 
@@ -1486,7 +1687,7 @@ If an attacker compromises that account or system and performs similar activity,
 
 This is why PAWs, tiering, and least privilege matter.
 
-## 17.9 Manual exclusions can create attacker paths
+## 17.10 Manual exclusions can create attacker paths
 
 If an excluded scanner, admin workstation, server, IP, or domain is later compromised, the attacker may inherit the exclusion blind spot.
 
@@ -1494,7 +1695,47 @@ Exclusions should be treated like security exceptions.
 
 They need owners, justification, review dates, and scope control.
 
-## 17.10 Single-step simulations may not produce complete attack stories
+## 17.11 MDI does not guarantee real-time identity disappearance after disablement
+
+Disabling an account is a control action.
+
+It is not an evidence deletion action.
+
+A disabled account can still appear in:
+
+* identity timelines,
+* alert evidence,
+* historical logs,
+* device context,
+* session-related traces,
+* Kerberos ticket-related activity,
+* and correlated XDR incidents.
+
+This does not automatically mean the account is still successfully logging on.
+
+The SOC must distinguish between:
+
+* new successful authentication,
+* failed authentication after disablement,
+* ticket usage,
+* cached endpoint context,
+* historical evidence,
+* delayed ingestion,
+* and active cloud sessions that require revocation.
+
+This is why credential compromise response should include more than password reset or disablement when applicable.
+
+For hybrid identity, consider:
+
+* disabling the account,
+* forcing password reset,
+* revoking cloud sessions,
+* validating active logons,
+* checking Kerberos ticket implications,
+* isolating affected endpoints,
+* and reviewing timeline evidence after containment.
+
+## 17.12 Single-step simulations may not produce complete attack stories
 
 MDI is strongest when it sees sequences.
 
@@ -1572,6 +1813,27 @@ For example:
 
 This makes the assessment honest.
 
+## 18.5 Validate exclusion behavior intentionally
+
+If the environment uses exclusions, include them in the test plan.
+
+Do not assume exclusions only remove noise.
+
+Validate:
+
+* which alerts are suppressed,
+* which entities are affected,
+* whether the exclusion applies globally or narrowly,
+* whether related XDR correlation is impacted,
+* whether hunting still shows the underlying activity,
+* and whether the SOC understands the residual risk.
+
+A good validation exercise should answer:
+
+> “If this excluded asset is compromised, what will MDI still show us, and what will it no longer show us?”
+
+If nobody can answer that, the exclusion is not ready for production.
+
 ---
 
 # 19. Detection quality is an architecture outcome
@@ -1647,6 +1909,9 @@ When assessing MDI detection readiness, use questions like these.
 * Are sensitive accounts excluded?
 * Are NAT or VPN devices excluded?
 * Are exclusions reviewed periodically?
+* Does each exclusion have an owner and review date?
+* Was narrower tuning attempted before exclusion?
+* Could any exclusion hide lateral movement or reconnaissance?
 
 ## False positives
 
@@ -1656,6 +1921,7 @@ When assessing MDI detection readiness, use questions like these.
 * Is NNR healthy?
 * Are low thresholds causing production noise?
 * Are legacy systems touching honeytokens?
+* Are disabled accounts being interpreted correctly as historical evidence, failed activity, ticket usage, or true post-disable authentication?
 
 ## Limits
 
@@ -1666,6 +1932,8 @@ When assessing MDI detection readiness, use questions like these.
 * Are legacy OS versions present?
 * Is encrypted traffic limiting inspection?
 * Are established admin patterns reducing anomaly sensitivity?
+* Are stakeholders expecting MDI to behave like DLP?
+* Are stakeholders expecting MDI to monitor user productivity or general user activity?
 
 ---
 
@@ -1680,6 +1948,16 @@ That is true, but too shallow.
 A better explanation is:
 
 > “MDI detects identity attacks by combining AD protocol analysis, Windows events, ETW, directory enrichment, behavioral baselines, deterministic attack patterns, anomaly detection, and Microsoft threat intelligence. Some detections can trigger immediately because the behavior matches known malicious patterns. Others require MDI to learn what normal looks like for users, devices, protocols, and domain controllers. Detection quality depends heavily on sensor coverage, event availability, NNR health, baseline maturity, and careful tuning.”
+
+I would also avoid saying:
+
+> “MDI monitors users.”
+
+That creates the wrong expectation.
+
+A more accurate consultant explanation is:
+
+> “MDI evaluates identity misuse and suspicious identity-plane behavior. It does not monitor employee productivity, inspect data content, or replace DLP. It helps Defender XDR understand authentication, authorization, directory, privilege, and protocol activity involving accounts and identity infrastructure.”
 
 That framing sets realistic expectations.
 

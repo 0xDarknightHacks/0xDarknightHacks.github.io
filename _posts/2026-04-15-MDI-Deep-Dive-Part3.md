@@ -103,6 +103,24 @@ But they may not answer:
 
 That is why the incident page should be the default starting point.
 
+## Architectural clarification: MDI signal vs XDR orchestration
+
+MDI is a signal source and identity detection engine.
+
+Defender XDR is the correlation and orchestration layer.
+
+That distinction matters during response conversations.
+
+MDI can raise high-value identity alerts, enrich incidents with identity context, and support built-in identity response actions. But MDI alone is not a SOAR platform, not a workflow engine, and not the place where you design complex custom incident automation.
+
+A practical way to explain the boundary is:
+
+> MDI tells Defender XDR what happened in the identity plane.
+> Defender XDR correlates that identity signal with endpoint, cloud, email, and app signals.
+> Sentinel, Logic Apps, or an external SOAR can extend automation and integration beyond built-in actions.
+
+This prevents a common customer expectation problem: assuming that because MDI detects identity threats, it should also run any custom response workflow by itself.
+
 ---
 
 # 2. Security alerts vs health issues
@@ -373,6 +391,39 @@ It is also useful for validating whether an alert is isolated.
 If an identity has one suspicious event but no related activity before or after, the severity may be lower.
 
 If the timeline shows reconnaissance, credential access, lateral movement, and privilege changes in sequence, severity increases quickly.
+
+## Why customers get surprised: disabled users may still appear in timelines
+
+A disabled account can still appear in an identity timeline or incident after containment.
+
+That does not automatically mean the account is still successfully authenticating.
+
+It may appear because:
+
+* historical evidence remains visible,
+* delayed telemetry is still being processed,
+* the account had Kerberos tickets issued before disablement,
+* endpoint sessions still reference the account,
+* cached credentials exist on a device,
+* cloud sessions were not revoked yet,
+* or failed authentication attempts are still being recorded.
+
+This is an important distinction:
+
+> Disabling an account changes future authentication eligibility.
+> It does not erase historical evidence or instantly invalidate every session, ticket, and cached reference.
+
+SOC analysts should validate whether post-disable activity is:
+
+* a new successful authentication,
+* a failed authentication attempt,
+* Kerberos ticket usage,
+* cached endpoint context,
+* historical evidence,
+* delayed ingestion,
+* or cloud session activity that requires revocation.
+
+This prevents unnecessary panic and also prevents under-response.
 
 ---
 
@@ -738,7 +789,49 @@ Reasons include:
 * executives are excluded from response,
 * or response actions were never tested.
 
-## Consultant callout
+## Architectural clarification: MDI built-in response vs custom response
+
+A common customer question is:
+
+> “Can we create custom response actions using MDI alone?”
+
+The answer is no, not in the SOAR sense.
+
+MDI alone supports limited built-in response actions, such as identity containment actions exposed through the Microsoft Defender portal, depending on permissions and configuration.
+
+It does not provide a full custom automation engine where you design arbitrary workflows, conditional playbooks, third-party ticketing flows, enrichment chains, or multi-system remediation logic.
+
+For custom response, you typically need one of the following:
+
+* Microsoft Defender XDR capabilities,
+* Microsoft Sentinel automation,
+* Azure Logic Apps,
+* Microsoft Graph / Defender APIs,
+* or a third-party SOAR platform.
+
+A useful way to explain it:
+
+> MDI provides identity detections and limited built-in identity response actions.
+> Defender XDR correlates and orchestrates security operations across Defender workloads.
+> Sentinel, Logic Apps, APIs, or external SOAR platforms provide broader custom automation.
+
+## Control-plane vs data-plane reality
+
+Identity response is usually control-plane response.
+
+Disabling an account, forcing a reset, or revoking sessions changes whether the identity should be allowed to authenticate or continue cloud sessions.
+
+It does not automatically erase endpoint processes, close every network connection, remove every cached credential, invalidate every Kerberos ticket instantly, or isolate a device.
+
+That is why identity containment is not the same as endpoint isolation.
+
+For endpoint containment, use Microsoft Defender for Endpoint actions such as device isolation, live response, antivirus remediation, or investigation package collection.
+
+For identity containment, use disable account, reset password, revoke sessions, mark compromised, and related identity controls.
+
+For cross-domain orchestration, use Defender XDR, Sentinel, Logic Apps, APIs, or SOAR.
+
+## Field insight
 
 Do not wait for a real incident to discover that nobody can disable a compromised account.
 
@@ -782,6 +875,30 @@ Automation can help contain.
 
 It does not replace root cause analysis.
 
+## What MDI does / does not do
+
+MDI contributes identity evidence and built-in identity response options.
+
+Defender XDR provides the broader automated investigation and cross-workload correlation experience.
+
+Sentinel and Logic Apps are commonly used when the organization needs custom automation such as:
+
+* creating ITSM tickets,
+* notifying Teams or Slack channels,
+* enriching incidents from CMDBs,
+* calling third-party APIs,
+* triggering firewall or NAC changes,
+* sending alerts to non-Microsoft SOC platforms,
+* or coordinating response across tools outside Defender.
+
+The practical boundary is:
+
+> MDI detects identity-plane abuse.
+> Defender XDR correlates and investigates across Defender workloads.
+> Sentinel and SOAR tools extend automation across the wider security ecosystem.
+
+This keeps expectations realistic and avoids positioning MDI as a workflow platform.
+
 ---
 
 # 16. Automatic Attack Disruption
@@ -816,9 +933,64 @@ Security architects should know:
 * how rollback works,
 * and how business-critical accounts are protected without creating blind spots.
 
+## Why customers get surprised: “disable user” is not instant erasure
+
+Customers sometimes expect that disabling a user should instantly remove all activity everywhere.
+
+That is not how identity systems work.
+
+Disabling a user is an important containment action, but it does not instantly invalidate every existing authentication artifact.
+
+It may not immediately remove:
+
+* Kerberos tickets already issued before disablement,
+* cached credentials on endpoints,
+* already-established logon sessions,
+* existing cloud tokens unless sessions are revoked,
+* application sessions outside Microsoft control,
+* historical evidence in Defender XDR,
+* delayed telemetry still being ingested,
+* or previous identity context on devices.
+
+This is why identity response is asynchronous.
+
+There can be a delay between:
+
+```text
+Control action taken
+        ↓
+Directory state updated
+        ↓
+Authentication systems reflect the change
+        ↓
+Cloud synchronization completes
+        ↓
+Sessions/tickets expire or are revoked
+        ↓
+Telemetry reflects the new state
+```
+
+So when an analyst sees activity after disablement, they should not assume one of two extremes:
+
+* “The control failed.”
+* “Everything is fine.”
+
+They should investigate the type of activity.
+
+Ask:
+
+* Was it a successful new authentication?
+* Was it failed authentication after disablement?
+* Was it Kerberos ticket usage?
+* Was it cached logon context?
+* Was it delayed telemetry?
+* Was it a still-active cloud session?
+* Was session revocation performed?
+* Was the endpoint isolated if compromise was suspected?
+
 ## Consultant callout
 
-Automatic disruption is not a reason to weaken detection review.
+Automatic Attack Disruption is not a reason to weaken detection review.
 
 It is a reason to improve response governance.
 
@@ -881,6 +1053,23 @@ For hybrid compromise, password reset alone may not be enough.
 Use session revocation where applicable.
 
 Also check whether the account is used by services. Disabling a service account without planning may cause outages.
+
+## Why disabling is only one part of containment
+
+Credential compromise response should treat identity state, session state, endpoint state, and application state as separate but related layers.
+
+For example:
+
+* disabling the AD account stops normal future authentication,
+* password reset invalidates the known password,
+* session revocation targets cloud tokens,
+* endpoint isolation stops activity from a compromised device,
+* service account rotation prevents application reuse,
+* and hunting confirms whether the attacker moved elsewhere.
+
+A single button rarely completes containment.
+
+This is why governance matters more than buttons.
 
 ## Field insight
 
@@ -1255,7 +1444,92 @@ The strongest executive message is:
 
 ---
 
-# 25. Case management and classification
+# 25. Integration reality: SIEM, Sentinel, KUMA, and third-party SOAR
+
+A common customer question is:
+
+> “Can we forward MDI telemetry directly to a third-party SIEM like Kaspersky KUMA?”
+
+The clean answer is:
+
+> MDI telemetry is not typically forwarded directly from MDI to third-party SIEMs as a native MDI forwarding pipeline.
+
+MDI is integrated into Microsoft Defender XDR. From there, organizations can use supported integration paths to export or consume alerts, incidents, and security data.
+
+For third-party SIEM or SOAR integration, common options include:
+
+* Microsoft Sentinel,
+* Microsoft Graph Security API,
+* Microsoft Defender XDR APIs,
+* streaming/export mechanisms supported by the Microsoft security stack,
+* Logic Apps,
+* or a third-party SOAR connector that consumes Microsoft security APIs.
+
+The important point:
+
+> MDI is not the SIEM forwarding layer.
+> Defender XDR and Sentinel are the more appropriate integration layers.
+
+## Is Sentinel required?
+
+Sentinel is not required for MDI to detect identity threats or for Defender XDR to correlate incidents.
+
+MDI and Defender XDR can operate without Sentinel.
+
+But Sentinel becomes important when the customer needs broader SIEM/SOAR capabilities, such as:
+
+* ingesting logs from many non-Microsoft sources,
+* long-term retention,
+* custom analytics across Microsoft and non-Microsoft data,
+* playbook automation through Logic Apps,
+* integration with third-party ticketing systems,
+* forwarding to external platforms,
+* centralized SOC workflows,
+* or custom cross-platform response.
+
+So the practical answer is:
+
+> Sentinel is not required for MDI detection.
+> Sentinel is often the right layer for broader integration, automation, retention, and SIEM/SOAR workflows.
+
+## What belongs where?
+
+| Capability                                                        | Best-fit layer                           |
+| ----------------------------------------------------------------- | ---------------------------------------- |
+| Identity signal collection from AD/hybrid identity infrastructure | MDI                                      |
+| Identity detections and posture findings                          | MDI                                      |
+| Cross-workload incident correlation                               | Defender XDR                             |
+| Built-in investigation experience                                 | Defender XDR                             |
+| Built-in identity response actions                                | MDI / Defender XDR portal                |
+| Endpoint isolation and endpoint response                          | Microsoft Defender for Endpoint          |
+| Custom playbooks and automation                                   | Sentinel / Logic Apps / SOAR             |
+| Long-term SIEM retention and cross-source analytics               | Sentinel or third-party SIEM             |
+| Third-party SIEM/SOAR integration                                 | Sentinel, Graph/API, connectors, or SOAR |
+| Data exfiltration / content inspection                            | Purview DLP / MDCA / storage/app logs    |
+
+## Consultant framing
+
+For a customer using Kaspersky KUMA or another SIEM, the discussion should not be:
+
+> “Can MDI send syslog directly?”
+
+The better discussion is:
+
+> “Which Microsoft security signals do you need outside Defender XDR, which supported export path will provide them, and what security outcome do you expect in the third-party SIEM?”
+
+If the goal is alert visibility, API-based alert ingestion may be enough.
+
+If the goal is correlation across Microsoft and non-Microsoft sources, Sentinel or the third-party SIEM architecture needs to be designed carefully.
+
+If the goal is automated containment, use Defender XDR built-in actions where possible and Sentinel/Logic Apps/SOAR for custom workflows.
+
+Do not force MDI to act like a syslog appliance.
+
+That is not its architectural role.
+
+---
+
+# 26. Case management and classification
 
 MDI alerts should feed into a disciplined SOC classification process.
 
@@ -1320,9 +1594,32 @@ The activity was just authorized.
 
 That distinction helps preserve confidence in MDI.
 
+## Architectural clarification: case management vs response automation
+
+Case management is not the same as response automation.
+
+Defender XDR can manage incidents and evidence across Defender workloads.
+
+Sentinel can extend case workflows, analytics, automation, and integrations across Microsoft and non-Microsoft sources.
+
+A third-party SOAR can orchestrate actions across many external tools.
+
+MDI should not be expected to replace any of those.
+
+MDI’s job is to provide identity detections, identity context, and identity response hooks.
+
+The SOC operating model decides where the case is owned:
+
+* Defender XDR for Microsoft-first incident operations,
+* Sentinel for SIEM/SOAR-centric operations,
+* third-party SIEM/SOAR for external SOC platforms,
+* or a hybrid model with clear ownership.
+
+The dangerous model is having alerts in multiple places with no single owner.
+
 ---
 
-# 26. Playbook structure for SOC teams
+# 27. Playbook structure for SOC teams
 
 A practical MDI playbook should include the following phases.
 
@@ -1333,6 +1630,7 @@ A practical MDI playbook should include the following phases.
 * Identify impacted entities.
 * Review all correlated alerts.
 * Confirm whether MDI is one signal or the primary signal.
+* Confirm where the case is owned: Defender XDR, Sentinel, or another SOC platform.
 
 ## Phase 2: Identity story reconstruction
 
@@ -1352,6 +1650,7 @@ A practical MDI playbook should include the following phases.
 * Review related endpoint evidence.
 * Check cloud sign-in risk.
 * Identify sensitive asset involvement.
+* Distinguish historical evidence from new post-containment activity.
 
 ## Phase 4: Hunting and scoping
 
@@ -1370,6 +1669,7 @@ A practical MDI playbook should include the following phases.
 * Isolate endpoint through MDE if needed.
 * Restrict access to sensitive systems.
 * Allow or review Automatic Attack Disruption actions.
+* Confirm that identity containment, endpoint containment, and cloud session containment are all addressed separately.
 
 ## Phase 6: Eradication and recovery
 
@@ -1380,6 +1680,7 @@ A practical MDI playbook should include the following phases.
 * Patch affected systems.
 * Harden protocols.
 * Review Tier 0 access.
+* Validate whether Kerberos ticket lifetime, cached credentials, or cloud sessions still create residual risk.
 
 ## Phase 7: Posture remediation
 
@@ -1391,9 +1692,36 @@ A practical MDI playbook should include the following phases.
 * Improve NNR and sensor health.
 * Update tuning rules.
 
+## Phase 8: Integration and automation review
+
+* Decide whether the incident should remain in Defender XDR or be synchronized to Sentinel/SOAR.
+* Validate whether external SIEM ingestion is required.
+* Confirm whether Graph/API, Sentinel, Logic Apps, or a SOAR connector is the correct integration path.
+* Document which system owns the case lifecycle.
+* Document which system owns automation.
+* Document rollback and approval requirements for response actions.
+
+## Consultant warning
+
+A playbook that says “disable user” is incomplete.
+
+A mature playbook must specify:
+
+* who approves the action,
+* who performs it,
+* whether sessions are revoked,
+* whether endpoint isolation is required,
+* whether service accounts are impacted,
+* whether Kerberos tickets remain relevant,
+* whether cloud sync delay matters,
+* how the action is verified,
+* and where the action is tracked.
+
+Governance matters more than buttons.
+
 ---
 
-# 27. What mature MDI operations look like
+# 28. What mature MDI operations look like
 
 A mature MDI operating model has clear ownership.
 
@@ -1445,6 +1773,17 @@ A mature MDI operating model has clear ownership.
 * XDR integration model,
 * response governance.
 
+## SIEM / SOAR engineers own
+
+* Sentinel or third-party SIEM ingestion design,
+* API-based integrations,
+* Logic App or SOAR playbooks,
+* ticketing integration,
+* alert normalization,
+* retention strategy,
+* cross-platform automation,
+* and external notification workflows.
+
 ## Field insight
 
 MDI fails operationally when every team thinks another team owns it.
@@ -1455,7 +1794,7 @@ That means ownership must be shared but clearly defined.
 
 ---
 
-# 28. Final consultant framing
+# 29. Final consultant framing
 
 When explaining MDI operations to a customer, I would avoid saying:
 
@@ -1466,6 +1805,16 @@ That is too generic.
 A stronger framing is:
 
 > “MDI alerts should be investigated as identity evidence inside Defender XDR incidents. Analysts should start from the incident, reconstruct the attack sequence through Alert Story, Alert Graph, and Identity Timeline, validate raw evidence and attribution, use Advanced Hunting to scope related activity, execute response actions where appropriate, and feed lessons learned into identity posture remediation.”
+
+I would also avoid saying:
+
+> “MDI can automate our response.”
+
+That creates the wrong expectation.
+
+A more accurate response architecture is:
+
+> “MDI provides identity detections, posture findings, and limited built-in identity response actions. Defender XDR correlates and orchestrates across Microsoft security workloads. Sentinel, Logic Apps, APIs, or external SOAR platforms provide broader custom automation and third-party integration.”
 
 That is the operating model.
 
@@ -1478,6 +1827,14 @@ Its value is that it helps answer five production questions:
 3. **How far did the attacker move?**
 4. **What can we contain now?**
 5. **Which identity path must be removed so this does not happen again?**
+
+And when response begins, the team must remember:
+
+> Identity containment is asynchronous.
+> Disabling an account is not the same as isolating a device.
+> Revoking a session is not the same as invalidating every Kerberos ticket.
+> MDI detection is not SOAR automation.
+> Defender XDR is the orchestration layer, and Sentinel or SOAR extends integration beyond it.
 
 That is why MDI belongs inside the Defender XDR learning journey.
 
@@ -1510,6 +1867,10 @@ In Part 3, we looked at operations.
 The key lesson is:
 
 > MDI alerts become valuable when they are investigated as part of Defender XDR incidents, enriched with identity timelines and hunting, connected to response actions, and used to reduce attack paths.
+
+The operational clarification is just as important:
+
+> MDI is not a SOAR platform and not a third-party SIEM forwarding engine. It is the identity signal and detection layer. Defender XDR correlates and orchestrates Microsoft security operations. Sentinel, Logic Apps, APIs, and external SOAR platforms extend automation, retention, and third-party integration.
 
 That is the consultant-grade view.
 
