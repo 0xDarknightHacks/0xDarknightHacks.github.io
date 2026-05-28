@@ -1,6 +1,6 @@
 ---
 title: "Microsoft Defender for Identity Deep Dive — Part 2: Detection Logic, Baselines, and Limits"
-date: 2026-05-09
+date: 2026-04-08
 categories: [microsoft-defender-xdr, identity-security]
 tags: [mdi, defender-xdr, active-directory, kerberos, ntlm, ldap, detection-engineering, soc, baselining]
 toc: true

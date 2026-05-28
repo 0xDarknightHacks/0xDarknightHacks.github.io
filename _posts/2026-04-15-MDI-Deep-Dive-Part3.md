@@ -1,6 +1,6 @@
 ---
 title: "Microsoft Defender for Identity Deep Dive — Part 3: XDR Investigation, Hunting, and Response"
-date: 2026-05-09
+date: 2026-04-15
 categories: [microsoft-defender-xdr, identity-security]
 tags: [mdi, defender-xdr, active-directory, incident-response, advanced-hunting, kql, soc, identity-security]
 toc: true
