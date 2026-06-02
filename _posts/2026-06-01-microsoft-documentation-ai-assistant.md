@@ -791,6 +791,3 @@ For a Microsoft Security Consultant or Engineer, this is a valuable learning pro
 The most important takeaway:
 
 > In security-focused AI systems, trust is not created by the model. Trust is created by the architecture around the model.
-
-```
-```
