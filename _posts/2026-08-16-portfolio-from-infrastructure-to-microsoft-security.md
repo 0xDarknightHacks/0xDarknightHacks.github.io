@@ -9,6 +9,8 @@ toc: true
 comments: false
 ---------------
 
+# Portfolio | From Infrastructure to Microsoft Security Engineering
+
 I am **Alaa Eddine Ayedi**, a Microsoft 365 and Cloud Security Consultant working across the Microsoft security ecosystem, with a particular focus on **Microsoft Entra ID, Defender XDR, Intune, Microsoft Purview, Microsoft Graph, PowerShell automation, Zero Trust, security assessments and solution engineering**.
 
 Today, my work sits at the intersection of three areas I enjoy most:
