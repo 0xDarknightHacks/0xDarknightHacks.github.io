@@ -7,6 +7,7 @@ description: "My journey from networking, infrastructure and cybersecurity labs 
 pin: true
 toc: true
 comments: false
+published: false
 ---------------
 
 # Portfolio | From Infrastructure to Microsoft Security Engineering

@@ -4,6 +4,7 @@ date: 2026-02-04
 categories: [windows server,active directory,domains and trusts,DNS]
 tags: [AD,WS,DNS,domains,trusts,writeups,learning,notes]
 toc: true
+published: false
 ---
 
 # AD Domains and Trusts

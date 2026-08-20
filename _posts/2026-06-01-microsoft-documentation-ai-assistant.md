@@ -4,6 +4,7 @@ date: 2026-06-01
 categories: [AI, Cybersecurity, Microsoft Security, Homelab]
 tags: [ollama, open-webui, fastapi, microsoft-learn, rag, llm, wsl2, mcp, ai-security]
 toc: true
+published: false
 ---
 
 # Building a Local Microsoft Learn RAG Assistant with Ollama, FastAPI, and Open WebUI

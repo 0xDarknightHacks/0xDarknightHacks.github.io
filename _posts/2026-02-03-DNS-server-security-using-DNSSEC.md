@@ -4,6 +4,7 @@ date: 2026-02-03
 categories: [windows server,active directory,DNS,server hardening]
 tags: [AD,WS,DNS,DNSSEC,KDS,NRPT,Cache Locking, Socket Pool,writeups,learning,notes]
 toc: true
+published: false
 ---
 
 # Introduction

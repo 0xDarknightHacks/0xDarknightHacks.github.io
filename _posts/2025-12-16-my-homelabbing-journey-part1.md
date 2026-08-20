@@ -4,6 +4,7 @@ date: 2025-12-16
 categories: [homelab,proxmox,selfhosting]
 tags: [journey,homelabbing,writeups,learning,notes]
 toc: true
+published: false
 ---
 
 # From Laptop Virtualization to Bare-Metal Dreams

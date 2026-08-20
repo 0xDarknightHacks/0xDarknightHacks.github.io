@@ -4,6 +4,7 @@ date: 2026-01-02
 categories: [homelab,proxmox,self-hosting,immich,backup]
 tags: [journey,homelabbing,writeups,learning,notes]
 toc: true
+published: false
 ---
 
 # Self-Hosting Immich to Save My iPhone (And a Trip to Ain Draham)

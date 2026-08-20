@@ -4,6 +4,7 @@ date: 2025-12-22
 categories: [homelab,proxmox,optiplex,self-hosting,debian,linux,repurposing,old-hardware]
 tags: [journey,homelabbing,writeups,learning,notes]
 toc: true
+published: false
 ---
 
 # Finally Installing Proxmox on the OptiPlex
