@@ -8,7 +8,7 @@ pin: true
 toc: true
 comments: false
 published: false
----------------
+---
 
 # Portfolio | From Infrastructure to Microsoft Security Engineering
 
@@ -24,7 +24,6 @@ That is where I am today.
 
 Getting here was less of a straight line.
 
----
 
 ## The Foundations
 
