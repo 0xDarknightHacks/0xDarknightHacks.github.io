@@ -1,6 +1,6 @@
 ---
 title: "Building a Secure Engineering, Secrets & PKI Platform with OpenBao, Microsoft Entra ID, and Proxmox"
-date: 2026-08-20 
+date: 2026-07-15 
 categories: [Security Engineering, Homelab]
 tags: [openbao, microsoft-entra-id, microsoft-graph, pki, x509, oidc, proxmox, docker, powershell, secrets-management, zero-trust]
 description: "How I designed a private security-engineering platform that combines Proxmox, Microsoft Entra ID, OpenBao, PKI, project-scoped RBAC, and certificate-based Microsoft Graph authentication."
